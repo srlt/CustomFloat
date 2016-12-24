@@ -39,7 +39,7 @@ using namespace CustomFloat;
 // ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
 using base_t   = float; // Basic float
-using custom_t = Float<6, 5, 2, 16>; // Custom float
+using custom_t = Float<6, 5, 3>; // Custom float
 
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
@@ -47,7 +47,7 @@ using custom_t = Float<6, 5, 2, 16>; // Custom float
 **/
 static void test_convert() {
     ::std::cout << "Conversions test..." << ::std::endl;
-    for (base_t x = -1; x <= 1; x += 0.01)
+    for (base_t x = -10; x <= 10; x += 0.1)
         ::std::cout << "\t" << x << " -> " << static_cast<base_t>(static_cast<custom_t>(x)) << ::std::endl;
 }
 
@@ -56,7 +56,8 @@ static void test_convert() {
 static void test_sums() {
     ::std::cout << "Sums test..." << ::std::endl;
     for (nat_t i = 0; i < 10; i++)
-        ::std::cout << i << " -> " << static_cast<base_t>(static_cast<custom_t>(i) + static_cast<custom_t>(i)) << ::std::endl;
+        for (nat_t j = i; j < 10; j++)
+            ::std::cout << "\t" << i << " + " << j << " = " << static_cast<base_t>(static_cast<custom_t>(i) + static_cast<custom_t>(j)) << ::std::endl;
 }
 
 // ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
@@ -71,7 +72,7 @@ static void test_sums() {
 **/
 int main(int argc, char** argv) {
     try {
-        // test_convert();
+        test_convert();
         test_sums();
     } catch (Exception::Any const& err) {
         ::std::cout << err.what() << ::std::endl;

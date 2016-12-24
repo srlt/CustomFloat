@@ -141,10 +141,6 @@ private:
     /** Current class instance.
     **/
     using This = Float<m_size, e_size, base, bias>;
-    /** "Over-precise" types.
-    **/
-    using over_val_t = double;       // Floating-point number
-    using over_int_t = int_fast32_t; // Signed integer
     /** Underlying data structure (/!\ actual bitfield layout is implementation defined).
     **/
     class Data final {
@@ -158,6 +154,10 @@ public:
 private:
     Data data; // Floating-point number
 private:
+    /** "Over-precise" types.
+    **/
+    using over_val_t = double;       // Floating-point number
+    using over_int_t = int_fast32_t; // Signed integer
     /** Floating-point conversion and update.
      * @param nb Convert this number
     **/
@@ -233,22 +233,18 @@ private:
      * @return a + b, does not set sign
     **/
     static Data sum(Data const& a, Data const& b) {
-::std::cerr << ::std::endl;
         Data r;
         nat_t p = static_pow(base, a.exponent - b.exponent);
-        nat_t v = static_cast<nat_t>(a.mantissa) + 1 + (static_cast<nat_t>(b.mantissa) + 1 + (p >> 1)) / p;
+        nat_t m = static_cast<nat_t>(a.mantissa) + (static_cast<nat_t>(b.mantissa) + static_pow(2, m_size) / (base - 1) + (p >> 1)) / p;
         nat_t e = a.exponent;
-::std::cerr << "\t(init) " << v * (base - 1) << " >= " << static_pow(2, m_size) * base << ::std::endl;
-        while (v * (base - 1) >= static_pow(2, m_size) * base) { // Local overflow
+        while (m >= static_pow(2, m_size)) { // Local overflow
             e++;
-            v = (v + (base >> 1)) / base;
-::std::cerr << "\t(step) " << v * (base - 1) << " >= " << static_pow(2, m_size) * base << ::std::endl;
+            m = (m - static_pow(2, m_size) + (base >> 1)) / base;
         }
-        if (e + bias >= static_pow(2, e_size)) // Overflow
+        if (e >= static_pow(2, e_size)) // Overflow
             throw Exception::Overflow();
-        r.mantissa = v - 1;
+        r.mantissa = m;
         r.exponent = e;
-::std::cerr << "\t" << static_cast<nat_t>(a.mantissa) << " + " << static_cast<nat_t>(b.mantissa) << " = " << static_cast<nat_t>(r.mantissa) << ::std::endl;
         return r;
     }
     /** Substraction component.
@@ -258,9 +254,7 @@ private:
     **/
     static Data diff(Data const& a, Data const& b) {
         Data r;
-        r.exponent = a.exponent;
-        auto p = static_pow(base, a.exponent - b.exponent);
-        r.mantissa = a.mantissa - (b.mantissa + (p >> 1)) / p;
+        /// TODO: diff
         return r;
     }
 public:
