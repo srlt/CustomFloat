@@ -39,7 +39,7 @@ using namespace CustomFloat;
 // ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
 using base_t   = float; // Basic float
-using custom_t = Float<6, 5, 3>; // Custom float
+using custom_t = Float<8, 5, 10>; // Custom float
 
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
@@ -55,9 +55,14 @@ static void test_convert() {
 **/
 static void test_sums() {
     ::std::cout << "Sums test..." << ::std::endl;
-    for (nat_t i = 0; i < 10; i++)
-        for (nat_t j = i; j < 10; j++)
-            ::std::cout << "\t" << i << " + " << j << " = " << static_cast<base_t>(static_cast<custom_t>(i) + static_cast<custom_t>(j)) << ::std::endl;
+    for (int_t i = 0; i < 10; i++) {
+        for (int_t j = i; j < 10; j++) {
+            ::std::cout << "\t" << j << " - " << i << " = ";
+            base_t res = static_cast<custom_t>(j) + (-static_cast<custom_t>(i));
+            base_t err = res - static_cast<base_t>(j - i);
+            ::std::cout << res << " (" << (err < 0 ? -err : err) << ")" << (err > 0.1 ? " /!\\" : "") << ::std::endl;
+        }
+    }
 }
 
 // ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁

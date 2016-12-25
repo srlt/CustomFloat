@@ -74,9 +74,10 @@ namespace CustomFloat {
 
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
-/** Natural integer.
+/** Natural and signed integer types.
 **/
 using nat_t = uint_fast32_t;
+using int_t =  int_fast32_t;
 
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
@@ -112,6 +113,19 @@ static constexpr nat_t static_pow(nat_t a, nat_t b) {
     if (b & 1)
         return r * r * a;
     return r * r;
+}
+
+/** Integer rounded division.
+ * @param a
+ * @param b
+ * @retrun round(a / b)
+*/
+static constexpr int_t static_div(int_t a, nat_t b) {
+    if (a < 0) {
+        return (a - (b >> 1)) / b;
+    } else {
+        return (a + (b >> 1)) / b;
+    }
 }
 
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
@@ -235,11 +249,11 @@ private:
     static Data sum(Data const& a, Data const& b) {
         Data r;
         nat_t p = static_pow(base, a.exponent - b.exponent);
-        nat_t m = static_cast<nat_t>(a.mantissa) + (static_cast<nat_t>(b.mantissa) + static_pow(2, m_size) / (base - 1) + (p >> 1)) / p;
+        nat_t m = static_div(static_cast<nat_t>(a.mantissa) * p + static_cast<nat_t>(b.mantissa) + static_pow(2, m_size) / (base - 1), p);
         nat_t e = a.exponent;
         while (m >= static_pow(2, m_size)) { // Local overflow
             e++;
-            m = (m - static_pow(2, m_size) + (base >> 1)) / base;
+            m = static_div(m - static_pow(2, m_size), base);
         }
         if (e >= static_pow(2, e_size)) // Overflow
             throw Exception::Overflow();
@@ -254,32 +268,45 @@ private:
     **/
     static Data diff(Data const& a, Data const& b) {
         Data r;
-        /// TODO: diff
+        nat_t p = static_pow(base, a.exponent - b.exponent);
+        int_t m = static_div(static_cast<int_t>(a.mantissa) * p - static_cast<int_t>(b.mantissa) - static_pow(2, m_size) / (base - 1), p);
+        nat_t e = a.exponent;
+        while (m < 0) { // Local underflow
+            if (e == 0) { // Underflow
+                r.mantissa = 0;
+                r.exponent = 0;
+                return r;
+            }
+            e--;
+            m = (m + static_pow(2, m_size)) * base; /// FIXME: Not the correct formula ?
+        }
+        r.mantissa = m;
+        r.exponent = e;
         return r;
     }
 public:
+    /** Negation.
+     * @return -this
+    **/
+    This operator-() const {
+        This res;
+        res.data = data;
+        res.data.sign = ~res.data.sign;
+        return res;
+    }
     /** Addition.
      * @param x Number to add
      * @return this + x
     **/
     This operator+(This const& x) const {
         This res;
-        if (x.data.exponent > data.exponent || x.data.mantissa > data.mantissa) { // x > this
-            if (x.data.sign == 1) { // Result is negative
-                res.data = diff(x.data, data);
-                res.data.sign = 1;
-            } else { // Result is positive
-                res.data = sum(x.data, data);
-                res.data.sign = 0;
-            }
+        auto const& op = (data.sign != x.data.sign ? diff : sum);
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+            res.data = op(x.data, data);
+            res.data.sign = x.data.sign;
         } else { // x <= this
-            if (data.sign == 1) {
-                res.data = diff(data, x.data);
-                res.data.sign = 1;
-            } else {
-                res.data = sum(data, x.data);
-                res.data.sign = 0;
-            }
+            res.data = op(data, x.data);
+            res.data.sign = data.sign;
         }
         return res;
     }
