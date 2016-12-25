@@ -122,9 +122,9 @@ static constexpr nat_t static_pow(nat_t a, nat_t b) {
 */
 static constexpr int_t static_div(int_t a, nat_t b) {
     if (a < 0) {
-        return (a - (b >> 1)) / b;
+        return (a - int_t(b >> 1)) / int_t(b);
     } else {
-        return (a + (b >> 1)) / b;
+        return (a + int_t(b >> 1)) / int_t(b);
     }
 }
 
@@ -268,6 +268,11 @@ private:
     **/
     static Data diff(Data const& a, Data const& b) {
         Data r;
+        if (a.mantissa == b.mantissa && a.exponent == b.exponent) {
+            r.mantissa = 0;
+            r.exponent = 0;
+            return r;
+        }
         nat_t p = static_pow(base, a.exponent - b.exponent);
         int_t m = static_div(static_cast<int_t>(a.mantissa) * p - static_cast<int_t>(b.mantissa) - static_pow(2, m_size) / (base - 1), p);
         nat_t e = a.exponent;
@@ -278,7 +283,7 @@ private:
                 return r;
             }
             e--;
-            m = (m + static_pow(2, m_size)) * base; /// FIXME: Not the correct formula ?
+            m = m * base + static_pow(2, m_size);
         }
         r.mantissa = m;
         r.exponent = e;

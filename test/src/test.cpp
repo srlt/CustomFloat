@@ -55,14 +55,9 @@ static void test_convert() {
 **/
 static void test_sums() {
     ::std::cout << "Sums test..." << ::std::endl;
-    for (int_t i = 0; i < 10; i++) {
-        for (int_t j = i; j < 10; j++) {
-            ::std::cout << "\t" << j << " - " << i << " = ";
-            base_t res = static_cast<custom_t>(j) + (-static_cast<custom_t>(i));
-            base_t err = res - static_cast<base_t>(j - i);
-            ::std::cout << res << " (" << (err < 0 ? -err : err) << ")" << (err > 0.1 ? " /!\\" : "") << ::std::endl;
-        }
-    }
+    for (int_t i = 0; i <= 10; i++)
+        for (int_t j = i; j <= 10; j++)
+            ::std::cout << "\t" << j << " - " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) + (-static_cast<custom_t>(i))) << ::std::endl;
 }
 
 // ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
@@ -77,7 +72,7 @@ static void test_sums() {
 **/
 int main(int argc, char** argv) {
     try {
-        test_convert();
+        // test_convert();
         test_sums();
     } catch (Exception::Any const& err) {
         ::std::cout << err.what() << ::std::endl;
