@@ -26,6 +26,7 @@
 
 // External headers
 #include <cmath>
+#include <type_traits>
 
 // ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
 // ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔ Headers ▔
@@ -115,19 +116,6 @@ static constexpr nat_t static_pow(nat_t a, nat_t b) {
     return r * r;
 }
 
-/** Integer rounded division.
- * @param a
- * @param b
- * @retrun round(a / b)
-*/
-static constexpr int_t static_div(int_t a, nat_t b) {
-    if (a < 0) {
-        return (a - int_t(b >> 1)) / int_t(b);
-    } else {
-        return (a + int_t(b >> 1)) / int_t(b);
-    }
-}
-
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
 }
@@ -172,21 +160,45 @@ private:
     **/
     using over_val_t = double;       // Floating-point number
     using over_int_t = int_fast32_t; // Signed integer
-    /** Floating-point conversion and update.
+    /** Integer fast power.
+     * @param a
+     * @param b
+     * @retrun a^b (with 0^0 == 1)
+    */
+    static constexpr over_int_t static_pow(over_int_t a, over_int_t b) {
+        if (b == 0)
+            return 1;
+        over_int_t r = static_pow(a, b / 2);
+        if (b % 2)
+            return r * r * a;
+        return r * r;
+    }
+    /** Integer round division.
+     * @param a
+     * @param b (must be > 0)
+     * @retrun round(a / b)
+    */
+    static constexpr over_int_t static_div(over_int_t a, over_int_t b) {
+        if (a < 0) {
+            return (a - (b / 2)) / b;
+        } else {
+            return (a + (b / 2)) / b;
+        }
+    }
+    /** Floating-point/integral conversion and update.
      * @param nb Convert this number
     **/
-    template<class Type> void convert(Type nb) {
-        bool negative;
+    template<class Type, class = typename ::std::enable_if<::std::is_integral<Type>::value || ::std::is_floating_point<Type>::value>::type> void convert(Type nb) {
         if (nb == 0) {
             data.sign = 0;
             data.mantissa = 0;
             data.exponent = 0;
             return;
         } else if (nb < 0) {
-            negative = true;
+            data.sign = 1;
             nb = -nb;
         } else {
-            negative = false;
+            data.sign = 0;
         }
         // Conversion stage
         over_val_t const val_val  = static_cast<over_val_t>(nb);
@@ -206,7 +218,6 @@ private:
             throw Exception::Overflow();
         }
         // Update stage
-        data.sign = (negative ? 1 : 0);
         data.mantissa = int_man;
         data.exponent = int_exp;
     }
@@ -214,16 +225,6 @@ public:
     /** Null constructor.
     **/
     Float(): Float(0) {}
-    /** Floating-point constructor/assignment.
-     * @param val Floating-point to convert
-    **/
-    template<class Type> Float(Type val) {
-        convert(val);
-    }
-    template<class Type> This& operator=(Type val) {
-        convert(val);
-        return *this;
-    }
     /** Copy constructor/assignment.
      * @param nb Number to copy
      * @return Current object
@@ -231,6 +232,17 @@ public:
     Float(This const& nb): data(nb.data) {}
     This& operator=(This const& nb) {
         data = nb.data;
+        return *this;
+    }
+    /** Floating-point constructor/assignment.
+     * @param val Floating-point to convert
+     * @return Current object
+    **/
+    template<class Type> Float(Type val) {
+        convert(val);
+    }
+    template<class Type> This& operator=(Type val) {
+        convert(val);
         return *this;
     }
     /** Floating-point conversion.
@@ -248,9 +260,18 @@ private:
     **/
     static Data sum(Data const& a, Data const& b) {
         Data r;
-        nat_t p = static_pow(base, a.exponent - b.exponent);
-        nat_t m = static_div(static_cast<nat_t>(a.mantissa) * p + static_cast<nat_t>(b.mantissa) + static_pow(2, m_size) / (base - 1), p);
-        nat_t e = a.exponent;
+        if (a.mantissa == 0 && a.exponent == 0) { // Trivial case
+            r.mantissa = b.mantissa;
+            r.exponent = b.exponent;
+            return r;
+        } else if (b.mantissa == 0 && b.exponent == 0) { // Trivial case
+            r.mantissa = a.mantissa;
+            r.exponent = a.exponent;
+            return r;
+        }
+        over_int_t p = static_pow(base, static_cast<over_int_t>(a.exponent) - static_cast<over_int_t>(b.exponent));
+        over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) * p + static_cast<over_int_t>(b.mantissa)) * static_cast<over_int_t>(base - 1) + static_pow(2, m_size), static_cast<over_int_t>(base - 1) * p);
+        over_int_t e = a.exponent;
         while (m >= static_pow(2, m_size)) { // Local overflow
             e++;
             m = static_div(m - static_pow(2, m_size), base);
@@ -268,14 +289,14 @@ private:
     **/
     static Data diff(Data const& a, Data const& b) {
         Data r;
-        if (a.mantissa == b.mantissa && a.exponent == b.exponent) {
+        if (a.mantissa == b.mantissa && a.exponent == b.exponent) { // Trivial case
             r.mantissa = 0;
             r.exponent = 0;
             return r;
         }
-        nat_t p = static_pow(base, a.exponent - b.exponent);
-        int_t m = static_div(static_cast<int_t>(a.mantissa) * p - static_cast<int_t>(b.mantissa) - static_pow(2, m_size) / (base - 1), p);
-        nat_t e = a.exponent;
+        over_int_t p = static_pow(base, static_cast<over_int_t>(a.exponent) - static_cast<over_int_t>(b.exponent));
+        over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) * p - static_cast<over_int_t>(b.mantissa)) * static_cast<over_int_t>(base - 1) - static_pow(2, m_size), static_cast<over_int_t>(base - 1) * p);
+        over_int_t e = a.exponent;
         while (m < 0) { // Local underflow
             if (e == 0) { // Underflow
                 r.mantissa = 0;
@@ -283,7 +304,58 @@ private:
                 return r;
             }
             e--;
-            m = m * base + static_pow(2, m_size);
+            m = m * static_cast<over_int_t>(base) + static_pow(2, m_size);
+        }
+        r.mantissa = m;
+        r.exponent = e;
+        return r;
+    }
+    /** Multiplication component.
+     * @param a Absolute value
+     * @param b Absolute value
+     * @return a * b, does not set sign
+    **/
+    static Data mult(Data const& a, Data const& b) {
+        Data r;
+        if ((a.mantissa == 0 && a.exponent == 0) || (b.mantissa == 0 && b.exponent == 0)) { // Trivial case
+            r.mantissa = 0;
+            r.exponent = 0;
+            return r;
+        }
+        over_int_t m = static_div(static_cast<over_int_t>(a.mantissa) * static_cast<over_int_t>(b.mantissa) * static_cast<over_int_t>(base - 1) + (static_cast<over_int_t>(a.mantissa) + static_cast<over_int_t>(b.mantissa)) * static_pow(2, m_size), static_pow(2, m_size));
+        over_int_t e = static_cast<over_int_t>(a.exponent) + static_cast<over_int_t>(b.exponent) - static_cast<over_int_t>(bias);
+        while (m >= static_pow(2, m_size)) { // Local overflow
+            e++;
+            m = static_div(m - static_pow(2, m_size), base);
+        }
+        if (e >= static_pow(2, e_size)) // Overflow
+            throw Exception::Overflow();
+        r.mantissa = m;
+        r.exponent = e;
+        return r;
+    }
+    /** Division component.
+     * @param a Absolute value
+     * @param b Absolute value
+     * @return a / b, does not set sign
+    **/
+    static Data div(Data const& a, Data const& b) {
+        Data r;
+        if (a.mantissa == 0 && a.exponent == 0) { // Trivial case
+            r.mantissa = 0;
+            r.exponent = 0;
+            return r;
+        }
+        over_int_t e = static_cast<over_int_t>(a.exponent) - static_cast<over_int_t>(b.exponent) + bias;
+        over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) - static_cast<over_int_t>(b.mantissa)) * static_pow(2, m_size), static_cast<over_int_t>(b.mantissa) * static_cast<over_int_t>(base - 1) + static_pow(2, m_size));
+        while (m < 0) { // Local underflow
+            if (e == 0) { // Underflow
+                r.mantissa = 0;
+                r.exponent = 0;
+                return r;
+            }
+            e--;
+            m = m * static_cast<over_int_t>(base) + static_pow(2, m_size);
         }
         r.mantissa = m;
         r.exponent = e;
@@ -313,6 +385,42 @@ public:
             res.data = op(data, x.data);
             res.data.sign = data.sign;
         }
+        return res;
+    }
+    /** Substraction.
+     * @param x Number to substract
+     * @return this - x
+    **/
+    This operator-(This const& x) const {
+        This res;
+        auto const& op = (data.sign == x.data.sign ? diff : sum);
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+            res.data = op(x.data, data);
+            res.data.sign = 1 - x.data.sign;
+        } else { // x <= this
+            res.data = op(data, x.data);
+            res.data.sign = data.sign;
+        }
+        return res;
+    }
+    /** Multiplication.
+     * @param x Number to multiply
+     * @return this * x
+    **/
+    This operator*(This const& x) const {
+        This res;
+        res.data = mult(data, x.data);
+        res.data.sign = (data.sign == x.data.sign ? 0 : 1);
+        return res;
+    }
+    /** Division.
+     * @param x Number to multiply
+     * @return this / x
+    **/
+    This operator/(This const& x) const {
+        This res;
+        res.data = div(data, x.data);
+        res.data.sign = (data.sign == x.data.sign ? 0 : 1);
         return res;
     }
 };

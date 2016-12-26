@@ -51,13 +51,40 @@ static void test_convert() {
         ::std::cout << "\t" << x << " -> " << static_cast<base_t>(static_cast<custom_t>(x)) << ::std::endl;
 }
 
-/** Simple sums.
+/** Simple additions.
 **/
-static void test_sums() {
-    ::std::cout << "Sums test..." << ::std::endl;
-    for (int_t i = 0; i <= 10; i++)
+static void test_adds() {
+    ::std::cout << "Additions test..." << ::std::endl;
+    for (int_t i = -10; i <= 10; i++)
         for (int_t j = i; j <= 10; j++)
-            ::std::cout << "\t" << j << " - " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) + (-static_cast<custom_t>(i))) << ::std::endl;
+            ::std::cout << "\t" << j << " + " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) + static_cast<custom_t>(i)) << ::std::endl;
+}
+
+/** Simple substractions.
+**/
+static void test_subs() {
+    ::std::cout << "Substractions test..." << ::std::endl;
+    for (int_t i = -10; i <= 10; i++)
+        for (int_t j = i; j <= 10; j++)
+            ::std::cout << "\t" << j << " - " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) - static_cast<custom_t>(i)) << ::std::endl;
+}
+
+/** Simple multiplications.
+**/
+static void test_muls() {
+    ::std::cout << "Multiplications test..." << ::std::endl;
+    for (int_t i = -10; i <= 10; i++)
+        for (int_t j = -10; j <= 10; j++)
+            ::std::cout << "\t" << j << " * " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) * static_cast<custom_t>(i)) << ::std::endl;
+}
+
+/** Simple divisions.
+**/
+static void test_divs() {
+    ::std::cout << "Divisions test..." << ::std::endl;
+    for (int_t i = -10; i <= 10; i++)
+        for (int_t j = -10; j <= 10; j++)
+            ::std::cout << "\t" << j << " / " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) / static_cast<custom_t>(i)) << ::std::endl;
 }
 
 // ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
@@ -72,8 +99,11 @@ static void test_sums() {
 **/
 int main(int argc, char** argv) {
     try {
-        // test_convert();
-        test_sums();
+        test_convert();
+        test_adds();
+        test_subs();
+        test_muls();
+        test_divs();
     } catch (Exception::Any const& err) {
         ::std::cout << err.what() << ::std::endl;
     }
