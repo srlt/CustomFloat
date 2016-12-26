@@ -135,11 +135,13 @@ namespace CustomFloat {
  * @param base   Base for the exponent (optional)
  * @param bias   Negative bias for the exponent (optional)
 **/
-template<nat_t m_size, nat_t e_size, nat_t base = 2, nat_t bias = static_pow(2, e_size - 1)> class Float final {
+template<nat_t m_size, nat_t e_size, nat_t base = 2, nat_t bias = static_pow(2, e_size - 1)> class Float {
     static_assert(m_size > 0, "Invalid mantissa size");
     static_assert(e_size > 0, "Invalid exponent size");
     static_assert(base > 1, "Invalid base");
-private:
+public:
+    static constexpr nat_t limit = static_pow(base, static_pow(2, e_size) - bias); // Maximal storable value
+protected:
     /** Current class instance.
     **/
     using This = Float<m_size, e_size, base, bias>;
@@ -151,11 +153,9 @@ private:
         uint_t<m_size> mantissa: m_size; // Mantissa
         uint_t<e_size> exponent: e_size; // Power of base exponent
     };
-public:
-    static constexpr nat_t limit = static_pow(base, static_pow(2, e_size) - bias); // Maximal storable value
-private:
+protected:
     Data data; // Floating-point number
-private:
+protected:
     /** "Over-precise" types.
     **/
     using over_val_t = double;       // Floating-point number
@@ -252,7 +252,7 @@ public:
         over_val_t val_exp = static_cast<over_val_t>(data.exponent) - static_cast<over_val_t>(bias);
         return (data.sign == 0 ? 1 : -1) * (static_cast<over_val_t>(data.mantissa) * static_cast<over_val_t>(base - 1) / static_cast<over_val_t>(static_pow(2, m_size)) + static_cast<over_val_t>(1)) * ::std::pow(static_cast<over_val_t>(base), val_exp);
     }
-private:
+protected:
     /** Addition component.
      * @param a Biggest absolute value
      * @param b Smallest absolute value
