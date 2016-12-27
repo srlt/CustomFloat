@@ -387,6 +387,18 @@ public:
         }
         return res;
     }
+    This& operator+=(This const& x) {
+        auto const& op = (data.sign != x.data.sign ? diff : sum);
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+            data = op(x.data, data);
+            data.sign = x.data.sign;
+        } else { // x <= this
+            auto sign = data.sign;
+            data = op(data, x.data);
+            data.sign = sign;
+        }
+        return *this;
+    }
     /** Substraction.
      * @param x Number to substract
      * @return this - x
@@ -403,6 +415,18 @@ public:
         }
         return res;
     }
+    This& operator-=(This const& x) {
+        auto const& op = (data.sign == x.data.sign ? diff : sum);
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+            data = op(x.data, data);
+            data.sign = 1 - x.data.sign;
+        } else { // x <= this
+            auto sign = data.sign;
+            data = op(data, x.data);
+            data.sign = sign;
+        }
+        return *this;
+    }
     /** Multiplication.
      * @param x Number to multiply
      * @return this * x
@@ -413,6 +437,12 @@ public:
         res.data.sign = (data.sign == x.data.sign ? 0 : 1);
         return res;
     }
+    This& operator*=(This const& x) {
+        auto sign = (data.sign == x.data.sign ? 0 : 1);
+        data = mult(data, x.data);
+        data.sign = sign;
+        return *this;
+    }
     /** Division.
      * @param x Number to multiply
      * @return this / x
@@ -422,6 +452,12 @@ public:
         res.data = div(data, x.data);
         res.data.sign = (data.sign == x.data.sign ? 0 : 1);
         return res;
+    }
+    This& operator/=(This const& x) {
+        auto sign = (data.sign == x.data.sign ? 0 : 1);
+        data = div(data, x.data);
+        data.sign = sign;
+        return *this;
     }
 };
 static_assert(::std::is_standard_layout<Float<1, 1>>::value, "'Float' class template does not instanciate standard layout classes");
