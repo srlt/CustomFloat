@@ -160,6 +160,7 @@ protected:
     **/
     using over_val_t = double;       // Floating-point number
     using over_int_t = int_fast32_t; // Signed integer
+protected:
     /** Integer fast power.
      * @param a
      * @param b
@@ -188,20 +189,15 @@ protected:
     /** Floating-point/integral conversion and update.
      * @param nb Convert this number
     **/
-    template<class Type, class = typename ::std::enable_if<::std::is_integral<Type>::value || ::std::is_floating_point<Type>::value>::type> void convert(Type nb) {
+    template<class Type, class = typename ::std::enable_if<::std::is_integral<Type>::value || ::std::is_floating_point<Type>::value>::type> void convert(Type const& nb) {
         if (nb == 0) {
             data.sign = 0;
             data.mantissa = 0;
             data.exponent = 0;
             return;
-        } else if (nb < 0) {
-            data.sign = 1;
-            nb = -nb;
-        } else {
-            data.sign = 0;
         }
         // Conversion stage
-        over_val_t const val_val  = static_cast<over_val_t>(nb);
+        over_val_t const val_val  = static_cast<over_val_t>(nb < 0 ? -nb : nb);
         over_val_t const val_base = static_cast<over_val_t>(base);
         over_val_t const val_exp = ::std::floor(::std::log2(val_val) / ::std::log2(val_base));
         over_int_t int_man = static_cast<over_int_t>(::std::round((val_val / ::std::pow(val_base, val_exp) - static_cast<over_val_t>(1)) / static_cast<over_val_t>(base - 1) * static_cast<over_val_t>(static_pow(2, m_size))));
@@ -218,8 +214,12 @@ protected:
             throw Exception::Overflow();
         }
         // Update stage
+        data.sign = (nb < 0 ? 1 : 0);
         data.mantissa = int_man;
         data.exponent = int_exp;
+    }
+    template<nat_t other_m_size, nat_t other_e_size, nat_t other_base, nat_t other_bias> void convert(Float<other_m_size, other_e_size, other_base, other_bias> const& nb) {
+        convert(static_cast<long double const&>(*this)); // Conversion through high-precision float
     }
 public:
     /** Null constructor.
@@ -238,17 +238,17 @@ public:
      * @param val Floating-point to convert
      * @return Current object
     **/
-    template<class Type> Float(Type val) {
+    template<class Type, class = typename ::std::enable_if<!::std::is_same<Type, This>::value>::type> Float(Type const& val) {
         convert(val);
     }
-    template<class Type> This& operator=(Type val) {
+    template<class Type, class = typename ::std::enable_if<!::std::is_same<Type, This>::value>::type> This& operator=(Type const& val) {
         convert(val);
         return *this;
     }
-    /** Floating-point conversion.
+    /** Floating-point/integral conversion.
      * @return Value converted
     **/
-    template<class Type> operator Type() const {
+    template<class Type, class = typename ::std::enable_if<::std::is_integral<Type>::value || ::std::is_floating_point<Type>::value>::type> operator Type() const {
         over_val_t val_exp = static_cast<over_val_t>(data.exponent) - static_cast<over_val_t>(bias);
         return (data.sign == 0 ? 1 : -1) * (static_cast<over_val_t>(data.mantissa) * static_cast<over_val_t>(base - 1) / static_cast<over_val_t>(static_pow(2, m_size)) + static_cast<over_val_t>(1)) * ::std::pow(static_cast<over_val_t>(base), val_exp);
     }
