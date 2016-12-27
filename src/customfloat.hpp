@@ -362,13 +362,40 @@ protected:
         return r;
     }
 public:
+    /** Comparisons operators.
+     * @param x Value to compare
+     * @return Result of the comparison
+    **/
+    bool operator==(This const& x) const {
+        return x.data.sign == data.sign && x.data.mantissa == data.mantissa && x.data.exponent == data.exponent;
+    }
+    bool operator!=(This const& x) const {
+        return !(*this == x);
+    }
+    bool operator<(This const& x) const {
+        if (x.data.sign != data.sign)
+            return x.data.sign < data.sign;
+        if (data.sign == 0) // Positive numbers
+            return x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa);
+        return x.data.exponent < data.exponent || (x.data.exponent == data.exponent && x.data.mantissa < data.mantissa);
+    }
+    bool operator<=(This const& x) const {
+        return (*this < x) || (*this == x);
+    }
+    bool operator>(This const& x) const {
+        return !(*this <= x);
+    }
+    bool operator>=(This const& x) const {
+        return !(*this < x);
+    }
+public:
     /** Negation.
      * @return -this
     **/
     This operator-() const {
         This res;
         res.data = data;
-        res.data.sign = ~res.data.sign;
+        res.data.sign = 1 - res.data.sign;
         return res;
     }
     /** Addition.
@@ -378,10 +405,10 @@ public:
     This operator+(This const& x) const {
         This res;
         auto const& op = (data.sign != x.data.sign ? diff : sum);
-        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // |x| > |this|
             res.data = op(x.data, data);
             res.data.sign = x.data.sign;
-        } else { // x <= this
+        } else { // |x| <= |this|
             res.data = op(data, x.data);
             res.data.sign = data.sign;
         }
@@ -389,10 +416,10 @@ public:
     }
     This& operator+=(This const& x) {
         auto const& op = (data.sign != x.data.sign ? diff : sum);
-        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // |x| > |this|
             data = op(x.data, data);
             data.sign = x.data.sign;
-        } else { // x <= this
+        } else { // |x| <= |this|
             auto sign = data.sign;
             data = op(data, x.data);
             data.sign = sign;
@@ -406,10 +433,10 @@ public:
     This operator-(This const& x) const {
         This res;
         auto const& op = (data.sign == x.data.sign ? diff : sum);
-        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // |x| > |this|
             res.data = op(x.data, data);
             res.data.sign = 1 - x.data.sign;
-        } else { // x <= this
+        } else { // |x| <= |this|
             res.data = op(data, x.data);
             res.data.sign = data.sign;
         }
@@ -417,10 +444,10 @@ public:
     }
     This& operator-=(This const& x) {
         auto const& op = (data.sign == x.data.sign ? diff : sum);
-        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // x > this
+        if (x.data.exponent > data.exponent || (x.data.exponent == data.exponent && x.data.mantissa > data.mantissa)) { // |x| > |this|
             data = op(x.data, data);
             data.sign = 1 - x.data.sign;
-        } else { // x <= this
+        } else { // |x| <= |this|
             auto sign = data.sign;
             data = op(data, x.data);
             data.sign = sign;
