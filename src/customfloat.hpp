@@ -103,9 +103,9 @@ template<nat_t size> using uint_t = typename Uint<size>::Type;
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
 /** Natural integer fast power.
- * @param a
- * @param b
- * @retrun a^b (with 0^0 == 1)
+ * @param a Positive integer
+ * @param b Non-negative integer
+ * @retrun a^b, 0 on overflow
 */
 static constexpr nat_t static_pow(nat_t a, nat_t b) {
     if (b == 0)
@@ -161,19 +161,6 @@ protected:
     using over_val_t = double;       // Floating-point number
     using over_int_t = int_fast32_t; // Signed integer
 protected:
-    /** Integer fast power.
-     * @param a
-     * @param b
-     * @retrun a^b (with 0^0 == 1)
-    */
-    static constexpr over_int_t static_pow(over_int_t a, over_int_t b) {
-        if (b == 0)
-            return 1;
-        over_int_t r = static_pow(a, b / 2);
-        if (b % 2)
-            return r * r * a;
-        return r * r;
-    }
     /** Integer round division.
      * @param a
      * @param b (must be > 0)
@@ -259,17 +246,10 @@ protected:
      * @return a + b, does not set sign
     **/
     static Data sum(Data const& a, Data const& b) {
-        Data r;
-        if (a.mantissa == 0 && a.exponent == 0) { // Trivial case
-            r.mantissa = b.mantissa;
-            r.exponent = b.exponent;
-            return r;
-        } else if (b.mantissa == 0 && b.exponent == 0) { // Trivial case
-            r.mantissa = a.mantissa;
-            r.exponent = a.exponent;
-            return r;
-        }
-        over_int_t p = static_pow(base, static_cast<over_int_t>(a.exponent) - static_cast<over_int_t>(b.exponent));
+        nat_t delta = static_cast<nat_t>(a.exponent) - static_cast<nat_t>(b.exponent);
+        if (delta > m_size) // 'b' has no impact (sufficient condition)
+            return a;
+        over_int_t p = static_pow(base, delta);
         over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) * p + static_cast<over_int_t>(b.mantissa)) * static_cast<over_int_t>(base - 1) + static_pow(2, m_size), static_cast<over_int_t>(base - 1) * p);
         over_int_t e = a.exponent;
         while (m >= static_pow(2, m_size)) { // Local overflow
@@ -278,6 +258,7 @@ protected:
         }
         if (e >= static_pow(2, e_size)) // Overflow
             throw Exception::Overflow();
+        Data r;
         r.mantissa = m;
         r.exponent = e;
         return r;
@@ -288,17 +269,15 @@ protected:
      * @return a - b, does not set sign
     **/
     static Data diff(Data const& a, Data const& b) {
-        Data r;
-        if (a.mantissa == b.mantissa && a.exponent == b.exponent) { // Trivial case
-            r.mantissa = 0;
-            r.exponent = 0;
-            return r;
-        }
-        over_int_t p = static_pow(base, static_cast<over_int_t>(a.exponent) - static_cast<over_int_t>(b.exponent));
+        nat_t delta = static_cast<nat_t>(a.exponent) - static_cast<nat_t>(b.exponent);
+        if (delta > m_size) // 'b' has no impact (sufficient condition)
+            return a;
+        over_int_t p = static_pow(base, delta);
         over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) * p - static_cast<over_int_t>(b.mantissa)) * static_cast<over_int_t>(base - 1) - static_pow(2, m_size), static_cast<over_int_t>(base - 1) * p);
         over_int_t e = a.exponent;
         while (m < 0) { // Local underflow
             if (e == 0) { // Underflow
+                Data r;
                 r.mantissa = 0;
                 r.exponent = 0;
                 return r;
@@ -306,6 +285,7 @@ protected:
             e--;
             m = m * static_cast<over_int_t>(base) + static_pow(2, m_size);
         }
+        Data r;
         r.mantissa = m;
         r.exponent = e;
         return r;
@@ -316,8 +296,8 @@ protected:
      * @return a * b, does not set sign
     **/
     static Data mult(Data const& a, Data const& b) {
-        Data r;
         if ((a.mantissa == 0 && a.exponent == 0) || (b.mantissa == 0 && b.exponent == 0)) { // Trivial case
+            Data r;
             r.mantissa = 0;
             r.exponent = 0;
             return r;
@@ -330,6 +310,7 @@ protected:
         }
         if (e >= static_pow(2, e_size)) // Overflow
             throw Exception::Overflow();
+        Data r;
         r.mantissa = m;
         r.exponent = e;
         return r;
@@ -340,8 +321,8 @@ protected:
      * @return a / b, does not set sign
     **/
     static Data div(Data const& a, Data const& b) {
-        Data r;
         if (a.mantissa == 0 && a.exponent == 0) { // Trivial case
+            Data r;
             r.mantissa = 0;
             r.exponent = 0;
             return r;
@@ -350,6 +331,7 @@ protected:
         over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) - static_cast<over_int_t>(b.mantissa)) * static_pow(2, m_size), static_cast<over_int_t>(b.mantissa) * static_cast<over_int_t>(base - 1) + static_pow(2, m_size));
         while (m < 0) { // Local underflow
             if (e == 0) { // Underflow
+                Data r;
                 r.mantissa = 0;
                 r.exponent = 0;
                 return r;
@@ -357,6 +339,7 @@ protected:
             e--;
             m = m * static_cast<over_int_t>(base) + static_pow(2, m_size);
         }
+        Data r;
         r.mantissa = m;
         r.exponent = e;
         return r;

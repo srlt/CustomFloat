@@ -82,7 +82,7 @@ static void test_muls() {
 **/
 static void test_divs() {
     ::std::cout << "Divisions test..." << ::std::endl;
-    for (int_t i = -10; i <= 10; i++)
+    for (int_t i = -10; i <= 10; i += (i == -1 ? 2 : 1))
         for (int_t j = -10; j <= 10; j++)
             ::std::cout << "\t" << j << " / " << i << " = " << static_cast<base_t>(static_cast<custom_t>(j) / static_cast<custom_t>(i)) << ::std::endl;
 }
