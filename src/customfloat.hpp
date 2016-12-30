@@ -103,9 +103,9 @@ template<nat_t size> using uint_t = typename Uint<size>::Type;
 // ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
 
 /** Natural integer fast power.
- * @param a Positive integer
- * @param b Non-negative integer
- * @retrun a^b, 0 on overflow
+ * @param a
+ * @param b
+ * @retrun a^b (with 0^0 == 1)
 */
 static constexpr nat_t static_pow(nat_t a, nat_t b) {
     if (b == 0)
@@ -328,6 +328,12 @@ protected:
             return r;
         }
         over_int_t e = static_cast<over_int_t>(a.exponent) - static_cast<over_int_t>(b.exponent) + bias;
+        if (e < 0) { // Underflow
+            Data r;
+            r.mantissa = 0;
+            r.exponent = 0;
+            return r;
+        }
         over_int_t m = static_div((static_cast<over_int_t>(a.mantissa) - static_cast<over_int_t>(b.mantissa)) * static_pow(2, m_size), static_cast<over_int_t>(b.mantissa) * static_cast<over_int_t>(base - 1) + static_pow(2, m_size));
         while (m < 0) { // Local underflow
             if (e == 0) { // Underflow
