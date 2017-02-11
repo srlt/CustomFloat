@@ -1,7 +1,7 @@
 NAME := $(notdir $(lastword $(abspath .)))
 BIN  := bin/$(NAME)
 SRC  := src
-HDR  := ../src
+HDR  := ../include
 
 HDRS_C   := $(wildcard $(SRC)/*.h) $(wildcard $(HDR)/*.h)
 HDRS_CPP := $(HDRS_C) $(wildcard $(SRC)/*.hpp) $(wildcard $(HDR)/*.hpp)
